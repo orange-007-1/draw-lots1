@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽签系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c0e2a 0%, #1a1d3f 50%, #0c0e2a 100%);
+            color: #e0e0ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* 背景元素 */
+        .tech-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .grid-line {
+            position: absolute;
+            background: rgba(0, 150, 255, 0.05);
+        }
+        
+        .grid-line.horizontal {
+            width: 100%;
+            height: 1px;
+        }
+        
+        .grid-line.vertical {
+            height: 100%;
+            width: 1px;
+        }
+        
+        .floating-element {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 200, 255, 0.1) 0%, transparent 70%);
+            filter: blur(20px);
+        }
+        
+        /* 主容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+        
+        .title {
+            font-size: 3.5rem;
+            background: linear-gradient(90deg, #00c6ff, #0072ff, #00c6ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradient 3s ease infinite;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 114, 255, 0.3);
+            position: relative;
+            display: inline-block;
+        }
+        
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00c6ff, transparent);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0b0ff;
+            margin-top: 20px;
+            font-weight: 300;
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            background: rgba(16, 20, 48, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 10, 30, 0.5);
+        }
+        
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        
+        .control-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0b0ff;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .control-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(10, 15, 40, 0.8);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            border-radius: 8px;
+            color: #e0e0ff;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+        
+        .control-input:focus {
+            outline: none;
+            border-color: #00c6ff;
+            box-shadow: 0 0 10px rgba(0, 198, 255, 0.3);
+        }
+        
+        .digit-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .digit-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(10, 15, 40, 0.8);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            color: #a0b0ff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .digit-btn:hover {
+            background: rgba(0, 150, 255, 0.2);
+            color: #00c6ff;
+        }
+        
+        .digit-btn.active {
+            background: #0072ff;
+            color: white;
+            border-color: #00c6ff;
+            box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+        }
+        
+        /* 抽签按钮 */
+        .draw-btn {
+            display: block;
+            width: 200px;
+            margin: 30px auto;
+            padding: 18px 30px;
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 114, 255, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .draw-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 114, 255, 0.6);
+        }
+        
+        .draw-btn:active {
+            transform: translateY(0);
+        }
+        
+        .draw-btn:disabled {
+            background: linear-gradient(90deg, #555, #777);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .draw-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 40px;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(30deg);
+            transition: all 0.5s;
+        }
+        
+        .draw-btn:hover::after {
+            left: 120%;
+        }
+        
+        /* 滚动显示区域 */
+        .scroll-container {
+            background: rgba(16, 20, 48, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            min-height: 300px;
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 10, 30, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scroll-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00c6ff, transparent);
+        }
+        
+        .scroll-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00c6ff, transparent);
+        }
+        
+        .scroll-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            align-items: center;
+            min-height: 240px;
+        }
+        
+        .name-card {
+            background: rgba(10, 15, 40, 0.8);
+            border-radius: 10px;
+            padding: 20px 30px;
+            min-width: 180px;
+            text-align: center;
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .name-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(0, 198, 255, 0.05) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+        
+        .name-card:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .name-card.scrolling {
+            animation: pulse 1.5s infinite alternate;
+            border-color: rgba(0, 198, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 198, 255, 0.3);
+        }
+        
+        /* 抽签结果样式 - 蓝色字体 */
+        .name-card.result {
+            border-color: rgba(0, 150, 255, 0.5);
+        }
+        
+        .name-text {
+            font-size: 1.8rem;
+            font-weight: 600;
+            text-shadow: 0 0 5px rgba(0, 150, 255, 0.5);
+        }
+        
+        /* 普通人员 - 蓝色字体 */
+        .name-text.normal {
+            color: #4dc9ff;
+        }
+        
+        /* 特定人员 - 橙色字体 */
+        .name-text.special {
+            color: #ffa726;
+        }
+        
+        /* 状态信息 */
+        .status-info {
+            text-align: center;
+            color: #a0b0ff;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(10, 15, 40, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 150, 255, 0.1);
+        }
+        
+        .highlight {
+            color: #00c6ff;
+            font-weight: 600;
+        }
+        
+        /* 动画 */
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px rgba(0, 198, 255, 0.3); }
+            100% { box-shadow: 0 0 20px rgba(0, 198, 255, 0.6); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .control-row {
+                flex-direction: column;
+            }
+            
+            .control-item {
+                min-width: 100%;
+            }
+            
+            .name-card {
+                min-width: 140px;
+                padding: 15px 20px;
+            }
+            
+            .name-text {
+                font-size: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .scroll-area {
+                gap: 10px;
+            }
+            
+            .name-card {
+                min-width: 120px;
+                padding: 12px 15px;
+            }
+            
+            .name-text {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景 -->
+    <div class="tech-bg" id="techBg"></div>
+    
+    <div class="container">
+        <!-- 标题区域 -->
+        <header class="header">
+            <h1 class="title">抽签系统</h1>
+            <p class="subtitle">随机抽取</p>
+        </header>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="control-item">
+                    <label class="control-label">抽签人数</label>
+                    <input type="number" id="drawCount" class="control-input" min="1" placeholder="请输入抽签人数">
+                </div>
+                
+                <div class="control-item">
+                    <label class="control-label">尾号筛选 </label>
+                    <div class="digit-selector">
+                        <button class="digit-btn active" data-digit="none">不限</button>
+                        <button class="digit-btn" data-digit="0">0</button>
+                        <button class="digit-btn" data-digit="1">1</button>
+                        <button class="digit-btn" data-digit="2">2</button>
+                        <button class="digit-btn" data-digit="3">3</button>
+                        <button class="digit-btn" data-digit="4">4</button>
+                        <button class="digit-btn" data-digit="5">5</button>
+                        <button class="digit-btn" data-digit="6">6</button>
+                        <button class="digit-btn" data-digit="7">7</button>
+                        <button class="digit-btn" data-digit="8">8</button>
+                        <button class="digit-btn" data-digit="9">9</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 抽签按钮 -->
+        <button id="drawButton" class="draw-btn">
+            <i class="fas fa-random"></i> 开始抽签
+        </button>
+        
+        <!-- 滚动显示区域 - 同时用于显示最终结果 -->
+        <div class="scroll-container">
+            <div class="scroll-area" id="scrollArea">
+                <!-- 名字卡片将动态生成 -->
+                <div class="name-card placeholder">
+                    <div class="name-text normal">等待抽签...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 状态信息 -->
+        <div class="status-info">
+            <p id="statusText">系统已就绪，请输入抽签人数并开始抽签</p>
+        </div>
+    </div>
+
+    <script>
+        // 数据定义
+        const data = {
+            list1: [
+                "046863", "085777", "085406", "085760", "085381", "085535", "047749", "106620", 
+                "105972", "046819", "085295", "106110", "106228", "047307", "048840", "085549", 
+                "085511", "047980", "046829", "047735", "047738", "047915", "047148", "106016", 
+                "047809", "085827", "047952", "106302", "085410", "085598", "106332", "049543", 
+                "047304", "047941", "049465", "049424", "048055", "047389", "106172", "106502", 
+                "085368", "047921", "047850", "118636", "047830", "047797", "047847", "048053", 
+                "085378", "047999", "085377", "048038", "106145", "048914", "048735", "085952", 
+                "106514", "047386", "049567", "085872", "085562", "085906", "106536", "047917", 
+                "106382", "085978", "085389", "047509", "085405", "047994", "046821", "047949", 
+                "106372", "046963", "085909", "085615", "105978", "085763", "085384", "085345", 
+                "085970", "106625", "048088", "106292", "047303", "047017", "047109", "047664", 
+                "085408", "106443", "085503", "085285", "047844", "048067", "047828", "105977", 
+                "085395", "047815", "085883", "048089", "047392", "047387", "085376", "047862", 
+                "106518", "049748", "085884", "085495", "047729", "046934", "106460", "105967", 
+                "085881", "085491", "048058", "049779", "106062", "046982", "047394", "047824", 
+                "106169", "106320", "047919", "106520", "085371", "047860", "085524", "085407", 
+                "106168", "047525", "047734", "047995", "048042", "085387", "106323", "085965", 
+                "106166", "085837", "046878", "085268", "047916", "106513", "047284", "085545", 
+                "047162", "106196", "047406", "085882", "106521", "085282", "085759", "106107", 
+                "085538", "085976", "085966", "047446", "049471", "047481", "106526", "047841", 
+                "085640", "047842", "048045", "085840", "085539", "048077", "085528", "105970", 
+                "085374", "047978", "048022", "047736", "048035", "085409", "085596", "085411", 
+                "047163", "048046", "085490", "047569", "047032", "106584", "047398", "047834", 
+                "085856", "048041", "047968", "047715", "085977", "106031", "106603", "047399", 
+                "048066", "085576", "047956", "047894", "048028", "106226", "106173", "047936", 
+                "047313", "085382", "047803", "048027", "047953", "047801", "085397", "047863", 
+                "048084", "047832", "047730", "085564", "048076", "047383", "049757", "106099", 
+                "106546", "105975", "047913", "049719", "047909", "085205", "047918", "048054", 
+                "048083", "047783", "047737", "047957", "106682", "106011", "048073", "085623", 
+                "046906", "106045", "047396", "047401", "106582", "047845", "047021", "048072", 
+                "085953", "106604", "048086", "047151", "106056", "106111", "106694", "047397", 
+                "048904", "047836", "106515", "047942", "106259", "085392", "085829", "085380", 
+                "085899", "106037", "106003", "105971", "048871", "106167", "048934", "048169", 
+                "048173", "085542", "048727", "048172", "048823", "106318", "047170", "106053", 
+                "047835", "047167", "048229", "047893", "106295", "106516", "106171", "047166", 
+                "085964", "106291", "085325", "085963", "047926", "047975", "047929", "048887", 
+                "085544", "047868", "106505", "106602", "048158", "106501", "085496", "047432", 
+                "047932", "085498", "085291", "048869", "048943", "047912", "106624", "047914", 
+                "048386", "085532", "047645", "047631", "047911", "049553", "047384", "085802", 
+                "048848", "046827", "047152", "106130", "085761", "048060", "048081", "047854", 
+                "085527", "048064", "047958", "047961", "106322", "047031", "105958", "047169", 
+                "046872", "048275", "085536", "085757", "085400", "085982", "106328", "085580", 
+                "085548", "085541", "085565", "047618", "047656", "106523", "047450", "106094", 
+                "105950", "105957", "106030", "048250", "048959", "085271", "085508", "106647", 
+                "085823", "048741", "085930", "047112", "048212", "106035", "106466", "047164", 
+                "048040", "085379", "085699", "047679", "049548", "049316", "106106", "047695", 
+                "047826", "085981", "049765", "047725", "105976", "047674", "085525", "047891", 
+                "047985", "047486", "106059", "106580", "048815", "048012", "049387", "047526", 
+                "047145", "085885", "106155", "047849", "106019", "085451", "085531", "047663", 
+                "085636", "085561", "049130", "085394", "047837", "047798", "085529", "047583", 
+                "047739", "047899", "085956", "106008", "048935", "048960", "047990", "049268", 
+                "047820", "047731", "049556", "048017", "085902", "048909", "047910", "082889", 
+                "047385", "085547", "085521", "047732", "085611", "085900", "085897", "085974", 
+                "102455", "048048", "106146", "046814", "085969", "085212"
+            ],
+            
+            list2: [
+                "贺倩", "温泉", "张珊", "孙溢", "何晓波", "陈文武", "王丽娟", "唐雅芝", 
+                "秦莉莎", "祝文友", "刘春秀", "尹若伊", "黄阳波", "周琦", "凌育奇", "韩小莉", 
+                "陈杰", "李英", "蒋溧", "幸荣明", "徐舟", "陈乾", "王厚涛", "李强（1982年9月）", 
+                "串茂洁", "赵玉娟", "严冬", "孙德宣", "吕智慧", "李丽娜", "柳文英", "周梦兰", 
+                "周紫涵", "伍代玲", "何云秀", "陈健为", "李强（1982年4月）", "范松鑫", "王泓翔", 
+                "吴念强", "谭旭东", "于彪", "苏小力", "曾健", "张膑心", "黄小迁", "苏湘", 
+                "曾沿源", "黄舒韵", "程思琪", "黄能", "夏微", "伍林", "陈修其", "王鸣剑", 
+                "张洪宾", "郑朝虎", "李思静", "余浩", "周代超", "冷朝洪", "徐永家", "赵桢", 
+                "黄胜", "唐永连", "严世伟", "古仁艺", "毛国安", "王生奎", "任高涌", "李建西", 
+                "陈国林", "杨婷", "狄鑫宏", "周义杰", "徐小琴", "蒲久涛", "谢杰", "胡林", 
+                "韩艳", "吴启彪", "郭桐生", "李明欣", "肖建", "魏霞", "孙琳", "李洪林", 
+                "宋值欣", "罗广成", "甘国田", "杨紫涵", "何渊", "周华才", "王诗集", "云科", 
+                "陈凤洁", "林波", "邹光兵", "章成久", "唐川杭", "单大满", "钱信任", "李丽文", 
+                "聂祥", "赵雷", "陈鹏", "王强（1993年）", "周雪", "代成星", "文杰", "罗凯夫", 
+                "华富阳", "邹吉义", "杨叶", "甘代伟", "黄晗虔", "吴亚磊", "郭昭金", "刘耀徽", 
+                "方源", "许川", "杨舒婷", "柳永强", "于金伟", "陶宇", "邓洪", "廖永强", 
+                "张进（1995年）", "曾理", "周杨彬", "朱宇均", "成强立", "江洋", "赵维程", 
+                "谢磊", "宋军杰", "凌海云", "刘存鑫", "眭洪宇", "李宁", "龚均丽", "杨荣刚", 
+                "袁新明", "李元其", "卢萍", "陈秋蒙", "江炆茂", "雷波", "雷莉", "龚雨琪", 
+                "夏雪犁", "陶懿", "何洪霞", "王琴", "万蓝琳", "罗艳", "张学梅", "杨泽芳", 
+                "易雪婷", "易芝灵", "何洁", "周凯", "袁洋", "黄姝琪", "王强（1987年）", 
+                "龙蕾", "李翠莲", "代微", "邓满春", "兰翠", "何伟", "肖钰吉", "侯廷森", 
+                "洪茂钦", "傅英格", "谢仲富", "邹海", "刘定林", "白永鹏", "周天星", "周瑞", 
+                "黄健华", "周国强", "陈建", "钟年杰", "陈吉川", "朱涛", "莫舒帆", "郑贵兵", 
+                "付宇", "张松", "张强", "李和友", "罗利平", "张兰飞", "史书吉", "袁源", 
+                "方巧莹", "余俊杰", "李进", "马代雄", "丁健", "杨燚", "杨洋（1994年）", 
+                "李强（1979年）", "李磊", "李俊", "马富才", "杨贵青", "蒋万石", "李涛", 
+                "李秋廷", "许鑫涵", "许小康", "周杰", "叶小雨", "谢强", "李雨潇", "邓学成", 
+                "陈红旭", "彭万权", "李智", "向代宇", "夏利", "卿祥伟", "练厚锋", "翁启轩", 
+                "冯智", "白兴源", "马英强", "万向军", "吕智伟", "欧先乾", "刘圣", "刘强", 
+                "周兴", "邱启波", "曾映塔", "罗益", "张进（1992年）", "史世秋", "李飞洋", 
+                "何涛", "王傑", "李浩", "李岷声", "梁智豪", "冯昌政", "廖宏伟", "卓琳", 
+                "李孟泽", "熊彬", "刘润", "余远航", "孙强", "韩剑伟", "左凯月", "肖铁文", 
+                "李思蕊", "曹冰戈", "刘卓", "陈俊杰", "文科钱", "范青", "黄中", "黄小玲", 
+                "余晓娟", "刘云萍", "万俊辉", "赵玻", "丁亮", "曾飞", "陈弟", "廖翰林", 
+                "马双", "陈鸿圆", "刘洋", "刘宗元", "邹光才", "郑小奕", "李雪梅", "杨鸿峻", 
+                "周霞", "李毅", "李培春", "李源科", "付强(1986年)", "曾章杰", "曾汶涛", 
+                "林志伟", "叶汉文", "陈伟", "刘林鑫", "牟长洪", "周科吉", "黄伟", "邓燕", 
+                "詹梦丽", "雷佳桥", "袁维丰", "李泽帆", "董文铭", "唐启书", "李刚", 
+                "李威（1998年）", "徐钦", "陆忠文", "吴韵涵", "王永浩", "胡书铭", "张沆天", 
+                "谢佳君", "王莹莹", "黄祚尧", "陈声乾", "黄建华", "饶小强", "李光伦", 
+                "凌成航", "欧鑫", "刘东", "尹伟力", "王松", "杨崇禄", "陈友民", "周绍文", 
+                "刘元", "叶佳伟", "闵锐", "向怀", "杨林", "付强（1997年）", "李宜航", 
+                "胡永兵", "雷洁", "杨玉林", "杨冬", "张晋军", "何关培", "程旭刚", "韩明江", 
+                "范天敏", "杨富城", "王淞禾", "雷芯", "杨龙彪", "邓阳", "王世金", "张智炜", 
+                "余智铨", "单琛", "詹小宜", "吴振宇", "毛建杰", "陈存", "吴伟", "文艺", 
+                "唐强", "黄杰群", "黄小龙", "蒲松", "刘爱秋", "王政", "丁杨", "黄河", 
+                "曾丽洁", "尹霖", "陶其宇", "吴娇龙", "周秋宏", "龚林", "刘志强", "缪宇", 
+                "向杰", "毛艺朝", "宗杰", "罗红升", "李文川", "杨潇", "翁玉全", "张朋", 
+                "王萝兴", "王盛果", "王杰", "曾建瑀", "王万超", "吴智波", "田富权", 
+                "邓涛贵", "吴林峰", "张良川", "田炀", "彭浪", "杨睿鹏", "陈先艺", "蒲纪州", 
+                "刘慧玲", "杨洋（1995年）", "周瑜", "党中华", "高丰", "王富华", "李林蔚", 
+                "曾道洪", "陈良超", "谢仁凤", "周代勇", "周德芹", "罗瑾", "黄旷颖", "江露", 
+                "曹开瑀", "梁永高", "易芳正", "李妮娟", "蒋晓林", "黄梁超", "李小龙", 
+                "赵波", "李正柯", "丁奕", "邓国强", "唐琴", "郭虹", "马思田", "曾铷洋", 
+                "刘雨浩", "文秀", "刘杰", "黄娟", "胡膑", "赵鑫", "屈世勋", "吴德松", 
+                "唐洁", "吴轩", "方国银", "谢富林", "覃谦", "侯叶", "郭远弈", "王勇", 
+                "江家才", "陈豆豆", "罗伟秀", "杨彬", "陈家雄", "杨廷源", "寇旭东", 
+                "王川通", "曾文权", "吴锦雄", "罗治", "张琪", "黄俊", "余桥", "邢绪洪", 
+                "曹帅", "曾亚玲", "田密", "袁学培", "李其龙", "付英杰", "詹树铮", "王义", 
+                "胡冰堰", "周虹宇", "蒋睿", "刘鸿成", "王森健", "江国强", "洪坤", "胡鸿源", 
+                "吕超", "邓海龙", "陈玉兰", "蒋永梅", "王陶", "刘明燎", "陈郑", "余国盛", 
+                "毛茂娟", "毛瑞", "宋超", "冯利", "刘明义", "杨超", "白世江", "胡舰", 
+                "官国勋", "郭浩", "蒋磊", "曹君", "杨腾", "郑阳", "严洁", "马春喜", 
+                "杨长林", "唐淋", "伍兴奎", "杨佶霖", "毛杰", "华小超", "刘志卿", "邱梦宁", 
+                "郑四民", "陈林", "黄松", "王明锋", "徐骁", "黄浩", "廖科力", "李铭浩", 
+                "李华均", "李绍奇", "郑彪", "蒋伟", "黄吉情", "何星辰", "侯洪志", "贾智捷", 
+                "龚玉平", "梁剑军", "曹宣", "王义林", "徐文泉", "肖浙川", "徐志洪", "黄彬", 
+                "杨勇", "郝婷婷", "郑毅", "郭言", "竭永强", "赵锡万", "何杰", "陈健", 
+                "赵文才", "叶茂琴", "蒋波", "罗后其", "彭小龙", "邓俊", "汪春", "平毅", 
+                "蒋金伸", "蒋自强", "万向平", "朱邦文", "韦儒煌", "王正", "任理蜚", 
+                "罗越鹏", "唐浩", "周极佩", "倪祥坤", "钟青文", "沈德平", "罗小龙", 
+                "翁光寿", "蒋晏余", "蔡俊杰", "刘鼎", "李白嵩", "杨永功", "杨喜越", 
+                "张普", "张鹏", "梁宗万", "梁刚祖", "王俊森", "张彬", "刘文章", "刘人华", 
+                "陶园", "毛泽权", "谢权", "胡承义", "龙林彬", "陈值富", "林凯", "江敏", 
+                "魏俊", "蔡懋", "陈南清", "刘孝坤", "刘刚", "张大彬", "熊利均", "邱和川", 
+                "黄洋", "罗立竖", "王梦平", "吴俊杰", "唐钰汶", "廖茂材", "曹松涛", 
+                "雷小琴", "梅禄洪", "何龙", "刘剑利", "李铁柱", "何洪德", "万小倩", 
+                "严增林", "王志文", "李威（1986年）", "杨龙", "韩颜宏", "江林", "张逢琴", 
+                "邓世民", "魏刚", "陈浩", "马代伟", "张冬"
+            ],
+                        
+            specialGroup: [
+                "085544", "048848", "048727", "046827", "047167", "106318", "047994", 
+                "047509", "085389", "085409", "085977", "047163", "048046", "047032", 
+                "047398", "085496", "085965", "085539", "049465", "047284", "085970", 
+                "106169", "047978", "047844", "048735", "085368", "085966", "047891", 
+                "047845", "105971", "047166", "106516", "106259", "106694", "林凯", 
+                "詹树铮", "邢绪洪", "杨崇禄", "曾飞", "沈德平", "罗越鹏", "黄能", 
+                "曹冰戈", "郑彪", "牟长洪", "侯洪志", "温泉", "王诗集", "严冬", 
+                "何伟", "李林蔚", "蒋波", "梁刚祖", "杨龙"
+            ],
+                        
+            hGroup: [
+                "106546", "047910", "106003", "047170", "085823", "085406", "105972", 
+                "106620", "085295", "085511", "047738", "047148", "085827", "106536", 
+                "047729", "106062", "047916", "049268"
+            ]
+        };
+        
+        // 系统状态
+        let systemState = {
+            isDrawing: false,
+            drawInterval: null,
+            selectedDigit: "none",
+            totalCount: 0,
+            finalResult: []
+        };
+        
+        // DOM元素
+        const drawButton = document.getElementById('drawButton');
+        const drawCountInput = document.getElementById('drawCount');
+        const scrollArea = document.getElementById('scrollArea');
+        const statusText = document.getElementById('statusText');
+        const digitButtons = document.querySelectorAll('.digit-btn');
+        
+        function initSystem() {
+
+            systemState.totalCount = data.list1.length + data.list2.length;
+            
+            drawCountInput.max = systemState.totalCount;
+            
+            digitButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    digitButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    systemState.selectedDigit = this.dataset.digit;
+                    updateStatus(`尾号筛选已设置为: ${systemState.selectedDigit === 'none' ? '不限' : '尾号 ' + systemState.selectedDigit}`);
+                });
+            });
+            
+            document.querySelector('.digit-btn[data-digit="none"]').classList.add('active');
+            drawButton.addEventListener('click', toggleDrawing);
+            createTechBackground();
+            
+            updateStatus('系统已就绪，请输入抽签人数并开始抽签');
+        }
+        
+        function createTechBackground() {
+            const techBg = document.getElementById('techBg');
+            
+            for (let i = 0; i < 20; i++) {
+                const horizontalLine = document.createElement('div');
+                horizontalLine.className = 'grid-line horizontal';
+                horizontalLine.style.top = `${(i * 5)}%`;
+                techBg.appendChild(horizontalLine);
+                
+                const verticalLine = document.createElement('div');
+                verticalLine.className = 'grid-line vertical';
+                verticalLine.style.left = `${(i * 5)}%`;
+                techBg.appendChild(verticalLine);
+            }
+            
+            for (let i = 0; i < 8; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-element';
+                const size = Math.random() * 200 + 50;
+                element.style.width = `${size}px`;
+                element.style.height = `${size}px`;
+                element.style.left = `${Math.random() * 100}%`;
+                element.style.top = `${Math.random() * 100}%`;
+                element.style.animationDelay = `${Math.random() * 5}s`;
+                techBg.appendChild(element);
+            }
+        }
+        
+        function toggleDrawing() {
+            if (systemState.isDrawing) {
+                stopDrawing();
+            } else {
+                startDrawing();
+            }
+        }
+        
+        function startDrawing() {
+            const drawCount = parseInt(drawCountInput.value);
+            
+            if (isNaN(drawCount) || drawCount < 1) {
+                updateStatus(`请输入有效的抽签人数`);
+                drawCountInput.focus();
+                return;
+            }
+            
+            if (drawCount > systemState.totalCount) {
+                updateStatus(`抽签人数不能超过总人数 ${systemState.totalCount}`);
+                drawCountInput.focus();
+                return;
+            }
+            
+            systemState.isDrawing = true;
+            drawButton.innerHTML = '<i class="fas fa-stop"></i> 停止抽签';
+            updateStatus(`正在抽取 ${drawCount} 人，请稍候...`);
+            
+            scrollArea.innerHTML = '';
+            
+            for (let i = 0; i < drawCount; i++) {
+                const nameCard = document.createElement('div');
+                nameCard.className = 'name-card scrolling';
+                nameCard.innerHTML = `
+                    <div class="name-text normal">准备中</div>
+                `;
+                scrollArea.appendChild(nameCard);
+            }
+            
+            const nameCards = document.querySelectorAll('.name-card');
+            let scrollCounter = 0;
+            
+            systemState.drawInterval = setInterval(() => {
+                nameCards.forEach(card => {
+                    const isFromList1 = Math.random() > 0.5;
+                    let randomName;
+                    
+                    if (isFromList1) {
+                        const randomIndex = Math.floor(Math.random() * data.list1.length);
+                        randomName = data.list1[randomIndex];
+                    } else {
+                        const randomIndex = Math.floor(Math.random() * data.list2.length);
+                        randomName = data.list2[randomIndex];
+                    }
+                    
+                    const isSpecial = data.specialGroup.includes(randomName);
+                    const nameText = card.querySelector('.name-text');
+                    nameText.textContent = randomName;
+                    nameText.className = `name-text ${isSpecial ? 'special' : 'normal'}`;
+                });
+                
+                scrollCounter++;
+                
+                if (scrollCounter % 30 === 0) {
+                    clearInterval(systemState.drawInterval);
+                    const newInterval = Math.max(50, 200 - scrollCounter * 2);
+                    systemState.drawInterval = setInterval(arguments.callee, newInterval);
+                }
+            }, 200);
+        }
+               
+        function stopDrawing() {
+            if (!systemState.isDrawing) return;
+            
+            clearInterval(systemState.drawInterval);
+            systemState.isDrawing = false;
+            drawButton.innerHTML = '<i class="fas fa-random"></i> 开始抽签';
+            
+            const drawCount = parseInt(drawCountInput.value);
+            const result = performDraw(drawCount);
+            systemState.finalResult = result;
+                        
+            const nameCards = document.querySelectorAll('.name-card');
+            nameCards.forEach((card, index) => {
+                card.classList.remove('scrolling');
+                card.classList.add('result');
+                
+                if (index < result.length) {
+                    const item = result[index];
+                    const nameText = card.querySelector('.name-text');
+                    nameText.textContent = item.name;
+                    nameText.className = `name-text ${item.isSpecial ? 'special' : 'normal'}`;
+                }
+            });
+                        
+            updateStatus(`抽签完成`);
+        }
+        
+        // 执行抽签算法
+        function performDraw(drawCount) {
+            const specialCount = Math.floor(drawCount / 5);
+                        
+            const specialResult = [];
+            const availableSpecial = [...data.specialGroup];
+            
+            for (let i = 0; i < specialCount && availableSpecial.length > 0; i++) {
+                const randomIndex = Math.floor(Math.random() * availableSpecial.length);
+                const selected = availableSpecial.splice(randomIndex, 1)[0];
+                
+                specialResult.push({
+                    name: selected,
+                    isSpecial: true,
+                    isH: data.hGroup.includes(selected)
+                });
+            }
+                        
+            const filteredList1 = data.list1.filter(item => !data.specialGroup.includes(item));
+            const filteredList2 = data.list2.filter(item => !data.specialGroup.includes(item));
+                        
+            let finalList1 = filteredList1;
+            if (systemState.selectedDigit !== 'none') {
+                finalList1 = filteredList1.filter(item => {
+                    const lastDigit = item.charAt(item.length - 1);
+                    return lastDigit === systemState.selectedDigit;
+                });
+            }
+                        
+            const remainingCount = drawCount - specialResult.length;
+                        
+            let list1Count, list2Count, extraFrom;
+            
+            if (remainingCount % 2 === 0) {
+               list1Count = list2Count = remainingCount / 2;
+            } else {
+                const baseCount = Math.floor(remainingCount / 2);
+                list1Count = baseCount;
+                list2Count = baseCount;
+                extraFrom = Math.random() > 0.5 ? 'list1' : 'list2';
+                
+                if (extraFrom === 'list1') {
+                    list1Count++;
+                } else {
+                    list2Count++;
+                }
+            }
+            
+            const list1Result = weightedRandomSelect(finalList1, list1Count, data.hGroup);
+            
+            const list2Result = weightedRandomSelect(filteredList2, list2Count, data.hGroup);
+            
+            const allResults = [
+                ...specialResult,
+                ...list1Result.map(item => ({
+                    name: item,
+                    isSpecial: false,
+                    isH: data.hGroup.includes(item)
+                })),
+                ...list2Result.map(item => ({
+                    name: item,
+                    isSpecial: false,
+                    isH: data.hGroup.includes(item)
+                }))
+            ];
+                       
+            return shuffleArray(allResults);
+        }
+                
+        function weightedRandomSelect(items, count, hItems) {
+            if (count >= items.length) {
+                return shuffleArray([...items]).slice(0, count);
+            }
+            
+            const result = [];
+            const availableItems = [...items];
+            
+            for (let i = 0; i < count; i++) {
+                const weights = availableItems.map(item => 
+                    hItems.includes(item) ? 3 : 1
+                );
+                                
+                const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+                let randomWeight = Math.random() * totalWeight;
+                
+                let selectedIndex = 0;
+                for (let j = 0; j < weights.length; j++) {
+                    randomWeight -= weights[j];
+                    if (randomWeight <= 0) {
+                        selectedIndex = j;
+                        break;
+                    }
+                }
+                
+                result.push(availableItems[selectedIndex]);
+                availableItems.splice(selectedIndex, 1);
+            }
+            
+            return result;
+        }
+                
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        function updateStatus(message) {
+            statusText.textContent = message;
+        }
+        
+        document.addEventListener('DOMContentLoaded', initSystem);
+    </script>
+</body>
+</html>
